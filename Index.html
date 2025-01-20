@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Music Distribution App</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            padding: 20px;
+        }
+        #app-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+        }
+        .music-form {
+            margin-bottom: 20px;
+        }
+        .music-form input,
+        .music-form select {
+            padding: 8px;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        .btn {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px;
+            border: none;
+            cursor: pointer;
+            width: 100%;
+        }
+        .btn:hover {
+            background-color: #45a049;
+        }
+        .music-list {
+            margin-top: 30px;
+        }
+        .music-item {
+            background-color: #f9f9f9;
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #ddd;
+        }
+        .cover-art {
+            width: 50px;
+            height: 50px;
+            object-fit: cover;
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <h1>Music Distribution App</h1>
+    <div class="music-form">
+        <input type="text" id="song-title" placeholder="Song Title" />
+        <input type="text" id="song-artist" placeholder="Artist" />
+        <select id="platform-select">
+            <option value="spotify">Spotify</option>
+            <option value="apple-music">Apple Music</option>
+            <option value="youtube">YouTube Music</option>
+        </select>
+        <input type="file" id="music-file" accept="audio/*" />
+        <input type="file" id="cover-art" accept="image/*" />
+        <button class="btn" id="upload-btn">Upload Music</button>
+    </div>
+
+    <div class="music-list">
+        <h3>Your Music</h3>
+        <div id="music-list-container"></div>
+    </div>
+
+    <div class="music-player" id="music-player">
+        <h3>Now Playing</h3>
+        <audio id="audio-player" controls>
+            <source id="audio-source" src="" type="audio/mp3">
+            Your browser does not support the audio element.
+        </audio>
+    </div>
+</div>
+
+<script>
+    const musicDatabaseKey = 'mockMusicDatabase';
+
+    // Initialize the music database in localStorage if it's not already set
+    if (!localStorage.getItem(musicDatabaseKey)) {
+        console.log("Initializing local storage for music database.");
+        localStorage.setItem(musicDatabaseKey, JSON.stringify([]));
+    }
+
+    // Function to display the music list from localStorage
+    function displayMusicList() {
+        const musicList = JSON.parse(localStorage.getItem(musicDatabaseKey));
+        const listContainer = document.getElementById('music-list-container');
+        listContainer.innerHTML = '';  // Clear current list before repopulating
+        if (musicList.length === 0) {
+            listContainer.innerHTML = '<p>No music uploaded yet.</p>';
+        } else {
+            musicList.forEach((music) => {
+                const musicItem = document.createElement('div');
+                musicItem.classList.add('music-item');
+                musicItem.innerHTML = `
+                    <div style="display: flex; align-items: center;">
+                        <img src="${music.coverArt}" alt="Cover Art" class="cover-art" />
+                        <div>
+                            <strong>${music.title}</strong> by ${music.artist} (Platform: ${music.platform})
+                        </div>
+                        <button class="btn" onclick="playMusic('${music.id}')">Play</button>
+                    </div>
+                `;
+                listContainer.appendChild(musicItem);
+            });
+        }
+    }
+
+    // Function to upload music, handle form validation, and simulate API calls
+    function uploadMusic() {
+        const title = document.getElementById('song-title').value;
+        const artist = document.getElementById('song-artist').value;
+        const platform = document.getElementById('platform-select').value;
+        const musicFile = document.getElementById('music-file').files[0];
+        const coverArtFile = document.getElementById('cover-art').files[0];
+
+        if (!title || !artist || !musicFile || !coverArtFile) {
+            alert('Please provide all details: Song Title, Artist, Music File, and Cover Art.');
+            return;
+        }
+
+        console.log("Preparing to upload music...");
+        const reader = new FileReader();
+
+        reader.onload = function(event) {
+            const coverArtDataUrl = event.target.result;
+
+            const audioReader = new FileReader();
+            audioReader.onload = function(audioEvent) {
+                const audioDataUrl = audioEvent.target.result;
+
+                // Simulate API interaction
+                mockUploadAPI(platform, {
+                    title,
+                    artist,
+                    platform,
+                    audioFile: audioDataUrl,
+                    coverArt: coverArtDataUrl,
+                });
+            };
+
+            audioReader.readAsDataURL(musicFile);
+        };
+
+        reader.readAsDataURL(coverArtFile);
+    }
+
+    // Simulated upload to the platform (cloud storage and localStorage)
+    function mockUploadAPI(platform, musicData) {
+        console.log("Simulating upload to " + platform);
+        setTimeout(() => {
+            const musicList = JSON.parse(localStorage.getItem(musicDatabaseKey));
+            const newMusic = {
+                ...musicData,
+                id: new Date().getTime(),
+            };
+
+            // Simulate the upload process (saving it in localStorage)
+            musicList.push(newMusic);
+            localStorage.setItem(musicDatabaseKey, JSON.stringify(musicList));
+
+            // Backup to cloud (simulated JSONPlaceholder API)
+            backupToCloud(newMusic);
+
+            // Clear the form
+            document.getElementById('song-title').value = '';
+            document.getElementById('song-artist').value = '';
+            document.getElementById('platform-select').value = 'spotify';
+            document.getElementById('music-file').value = '';
+            document.getElementById('cover-art').value = '';
+
+            // Refresh the music list
+            displayMusicList();
+
+            alert(`Music uploaded successfully to ${platform}!`);
+        }, 1000);
+    }
+
+    // Function to back up the music data to the cloud (simulated)
+    function backupToCloud(musicData) {
+        console.log("Backing up music data to cloud...");
+        fetch('https://jsonplaceholder.typicode.com/posts', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(musicData),
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Backup successful:', data);
+        })
+        .catch((error) => {
+            console.error('Error backing up to cloud:', error);
+        });
+    }
+
+    // Function to play music when clicking the "Play" button
+    function playMusic(musicId) {
+        const musicList = JSON.parse(localStorage.getItem(musicDatabaseKey));
+        const musicToPlay = musicList.find(music => music.id == musicId);
+
+        if (musicToPlay) {
+            const audioPlayer = document.getElementById('audio-player');
+            const audioSource = document.getElementById('audio-source');
+            audioSource.src = musicToPlay.audioFile;
+            audioPlayer.load();
+            audioPlayer.play();
+
+            // Update Now Playing section
+            const nowPlaying = document.querySelector('.music-player h3');
+            nowPlaying.textContent = `Now Playing: ${musicToPlay.title} by ${musicToPlay.artist}`;
+        } else {
+            console.error('Error: Music not found!');
+        }
+    }
+
+    // Event listener for the upload button
+    document.getElementById('upload-btn').addEventListener('click', uploadMusic);
+
+    // Display the music list on page load
+    displayMusicList();
+</script>
+
+</body>
+</html>
